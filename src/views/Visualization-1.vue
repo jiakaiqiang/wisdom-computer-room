@@ -39,6 +39,7 @@ let camera,
   controls,
   pathToShow,
   points;
+  let pointsArray=[]
 let pointArr = [
   2,
   0,
@@ -158,19 +159,18 @@ const handleAuto = () => {
 };
 
 const changeEyes = () => {
+    controls.enabled = true;
   eyesValue.value = !eyesValue.value;
   if (!eyesValue.value) {
     camera.lookAt(0, 0, 0);
     camera.position.set(0, 20, 4);
     scene.add(camera);
-    controls.enabled = true;
+   
+    controls.target.set(0, 0, 0)
     controls.update();
   } else {
-    camera.position.set(0, 1, -1);
-    camera.lookAt(cubPerson.position);
-
-    cubPerson.add(camera);
-    controls.enabled = false;
+   
+  
   }
 };
 //加载纹理贴图
@@ -285,7 +285,7 @@ const init = () => {
     camera.position.set(
       curCabinet.position.x,
       curCabinet.position.y + 1,
-      curCabinet.position.z + 2
+      curCabinet.position.z+2
     );
     controls.target.set(
       curCabinet.position.x,
@@ -295,9 +295,7 @@ const init = () => {
     controls.update();
     controls.enabled = false;
     }
-    if(curPoint){
-
-    }
+   
   });
   renderer.domElement.addEventListener("mousemove", event => {
     const px = event.offsetX;
@@ -308,7 +306,7 @@ const init = () => {
 //绘制巡检点
 
 const createSquare = () => {
-  const geoPerson = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+  const geoPerson = new THREE.BoxGeometry(0.5, 0.6, 0.5);
   const matPeron = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
    cubPerson = new THREE.Mesh(geoPerson, matPeron);
   cubPerson.position.set(2, 0, -5.5);
@@ -317,11 +315,12 @@ const createSquare = () => {
 const createPoint = () => {
   console.log(points,'wefw')
   for (let i = 0; i < points.length; i++) {
-    const geoPerson = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+    const geoPerson = new THREE.BoxGeometry(0.2, 0.5, 0.2);
     const matPeron = new THREE.MeshBasicMaterial({ color: "red" });
     let point = new THREE.Mesh(geoPerson, matPeron);
     point.position.copy(points[i])
     scene.add(point);
+    pointsArray.push(point);
   }
 };
 
@@ -390,6 +389,33 @@ const  selectPoinet = (px, py) => {
   const y = -(py / thress.value.clientHeight) * 2 + 1;
   //设置鼠标的裁剪坐标和相机的设置射线投射器
   raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+    const intersect = raycaster.intersectObjects(pointsArray)[0];
+    console.log(intersect,'intersect')
+  let intersectObj = intersect ? intersect.object : null;
+  if(intersectObj){
+    curPoint = intersectObj;
+     camera.lookAt(
+      curPoint.position.x,
+      curPoint.position.y + 1,
+      curPoint.position.z
+    );
+
+    camera.position.set(
+      curPoint.position.x,
+      curPoint.position.y + 1,
+      curPoint.position.z 
+    );
+
+    controls.target.set(
+      curPoint.position.x-0.1,
+      curPoint.position.y + 1,
+      curPoint.position.z
+    );
+    controls.update();
+    controls.enabled = true; // 启用轨道控制
+  }else{
+    curPoint = null
+  }
 }
 onMounted(() => {
   init();
