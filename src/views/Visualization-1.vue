@@ -197,6 +197,8 @@ const animate = () => {
 const init = () => {
   scene = new THREE.Scene();
   renderer = new THREE.WebGLRenderer();
+  const  ambientLight=  new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
   initPathPoints();
   createSquare();
   renderPath(renderer);
@@ -211,12 +213,12 @@ const init = () => {
         if (map) {
           item.material = new THREE.MeshBasicMaterial({
             map: crtTexture(item.name.split("-")[0]),
-            side: THREE.FrontSide // 设置模型只能查看正面
+            side: THREE.DoubleSide // 设置模型只能查看正面
           });
         } else {
           item.material = new THREE.MeshBasicMaterial({
             color,
-            side: THREE.FrontSide
+            side: THREE.DoubleSide
           });
         }
 
@@ -306,19 +308,20 @@ const init = () => {
 //绘制巡检点
 
 const createSquare = () => {
-  const geoPerson = new THREE.BoxGeometry(0.5, 0.6, 0.5);
+  const geoPerson = new THREE.BoxGeometry(0.5, 0.5, 0.5);
   const matPeron = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
    cubPerson = new THREE.Mesh(geoPerson, matPeron);
-  cubPerson.position.set(2, 0, -5.5);
+  cubPerson.position.set(2, 0.3, -5.5);
   scene.add(cubPerson);
 };
 const createPoint = () => {
   console.log(points,'wefw')
   for (let i = 0; i < points.length; i++) {
-    const geoPerson = new THREE.BoxGeometry(0.2, 0.5, 0.2);
+    const geoPerson = new THREE.BoxGeometry(0.2, 0.2, 0.2);
     const matPeron = new THREE.MeshBasicMaterial({ color: "red" });
     let point = new THREE.Mesh(geoPerson, matPeron);
     point.position.copy(points[i])
+    point.position.y=0.2
     scene.add(point);
     pointsArray.push(point);
   }
@@ -368,11 +371,18 @@ const selectCabinet = (px, py) => {
   if (curCabinet && curCabinet !== intersectObj) {
     curCabinet.material.map = crtTexture("cabinet");
   }
+
   //如果存在交叉对象 则进行选中
   if (intersectObj) {
     state.planePos.left = px + "px";
     state.planePos.top = py + "px";
-    //
+     state.curCabinet = {
+            name: `测试机柜${curCabinet?.name.split("-")[1]}`,
+            temperature: 12,
+            capacity: 20,
+            count: 5
+          };
+    
     if (intersectObj !== curCabinet) {
       curCabinet = intersectObj;
       intersectObj.material.map = crtTexture("cabinet-hover");
