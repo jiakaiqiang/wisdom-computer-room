@@ -30,10 +30,13 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import {loadingModel} from "@/common/three/loadingModel.js";
 
 import * as TWEEN from "@tweenjs/tween.js";
 import { PathGeometry, PathPointList } from "three.path";
 const thress = ref(null);
+//存储所有的模型
+let modelList = []
 
 let camera,
   scene,
@@ -176,16 +179,17 @@ const handleAuto = () => {
   moveSquareAlongPath(points, duration, stopPoints);
 };
 const changeDefaultEyes = ()=>{
+  let  data =  scene.children.find(item=>item.isMesh&&item.name=='box')
+  if(data){
+    scene.remove(data)
+  }
   if(curCabinet) {
     //其他的物体只先是线框
     for (let i = 0; i < scene.children.length; i++) {
       const element = scene.children[i];
 
       if (element.isMesh) {
-        if (element.name !== curCabinet.name) {
-
-          element.visible = true
-        }
+        element.visible = true
       }
 
     }
@@ -276,7 +280,7 @@ const init = () => {
           cabinets.push(item);
         }
       });
-
+      modelList.push(gltf.scene)
       scene.add(...gltf.scene.children);
       // scene.add(pathToShow); // 确保路径贴图被添加到场景中
     },
@@ -321,26 +325,52 @@ const init = () => {
 
   animate();
 
-  renderer.domElement.addEventListener("dblclick", event => {
+  renderer.domElement.addEventListener("dblclick", async (event) => {
+    console.log( modelList[0])
+    modelList[0].visible =  false
+     if(signal.value){
+       return false
+     }
     signal.value =  true
     const px = event.offsetX;
     const py = event.offsetY;
       selectCabinet(px, py);
       selectPoinet(px, py);
     if(curCabinet){
+
      //其他的物体只先是线框
       for (let i = 0; i < scene.children.length; i++) {
       const element = scene.children[i];
 
         if(element.isMesh){
-          if (element.name !== curCabinet.name) {
-
-            element.visible =  false
-          }
+          element.visible =  true
         }
 
     }
-    camera.lookAt(
+
+      let cabinetData = await loadingModel('models/cabinet/cabinet_42u.obj','obj')
+      console.log(cabinetData,'cabinetData')
+    let cabinet =  cabinetData.children[0]
+
+      //
+      // //创建box
+      // const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+      // const boxMaterial = new THREE.MeshBasicMaterial({
+      //   color: 0x00ff00,
+      //   transparent: true,
+      //   opacity: 0.5
+      // });
+      // const box = new THREE.Mesh(boxGeometry, boxMaterial);
+
+      cabinet.name='box'
+      cabinet.position.set(
+          curCabinet.position.x,
+          curCabinet.position.y + 1,
+          curCabinet.position.z
+      )
+      scene.add(cabinet)
+
+      camera.lookAt(
       curCabinet.position.x,
       curCabinet.position.y + 1,
       curCabinet.position.z

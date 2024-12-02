@@ -25,6 +25,11 @@ let routes =[
                 path:'wall',
                 name:'wall',
                 component:()=>import('@/views/wall.vue')
+            },
+            {
+                path:'loadermodel',
+                name:'loadermodel',
+                component:()=>import('@/views/loadmodel.vue')
             }
         ]
     }
