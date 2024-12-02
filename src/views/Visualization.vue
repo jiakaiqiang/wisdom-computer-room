@@ -391,7 +391,7 @@ function handleClick(e) {
 
 <style scoped lang="scss">
 .three-dom {
-  width: 100%;
+  width: 90%;
   height: 100%;
 }
 

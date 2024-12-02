@@ -10,6 +10,12 @@
         <p>使用情况：{{ state.curCabinet.count }} / {{ state.curCabinet.capacity }}</p>
       </div>
     </div>
+    <div
+        id="video"
+        :style="{position:'absolute',left: state.pointPos.left,top:state.pointPos.top,display: state.pointDisplay,width:'100px',height:'100px'}"
+      >
+        <video width='200px' autoplay height='200px' controls><source src="https://stream7.iqilu.com/10339/upload_transcode/202002/18/202002181038474liyNnnSzz.mp4" type="video/mp4">Your browser does not support the video tag.</video>
+      </div>
     <el-button @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
     <el-button @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>
   </div>
@@ -75,6 +81,11 @@ const state = reactive({
     left: 0,
     top: 0
   },
+  pointPos:{
+    left: 0,
+    top: 0
+  },
+    pointDisplay: "none",
   planeDisplay: "none",
   curCabinet: {
     name: "Loading……",
@@ -105,41 +116,47 @@ const initPathPoints = () => {
 };
 
 const moveSquareAlongPath = (points, duration, stopPoints) => {
-  // const totalLength = pathCurve.getLength();
-  // const step = totalLength / points.length;
+  const totalLength = pathCurve.getLength();
+  const step = totalLength / points.length;
 
-  // let currentPointIndex = 0;
-  // let currentLength = 0;
+  let currentPointIndex = 0;
+  let currentLength = 0;
 
   tween = new TWEEN.Tween({ t: 0 })
     .to({ t: 1 }, duration)
     .easing(TWEEN.Easing.Linear.None)
     .onUpdate(({ t }) => {
-      console.log(t, "sdsdsd");
+   
       // const length = t * totalLength;
       //获取对应时间点的信息
       const point = pathCurve.getPointAt(t);
-
-      cubPerson.position.copy(point);
-      // 更新相机位置和方向
-      // camera.position.set(point.x, point.y + 1, point.z); // 相机高度稍微高一点
-      // camera.lookAt(point);
-
-      // // 获取前一个点的索引
-      // const previousPointIndex = Math.max(0, currentPointIndex - 2);
-      // const previousPoint = points[previousPointIndex];
+    
+      cubPerson.position.set(point.x,0.3,point.z);
+      if( eyesValue.value){
+          // // 获取前一个点的索引
+      const previousPointIndex = Math.max(0, currentPointIndex - 2);
+      const previousPoint = points[previousPointIndex];
 
       // // 计算物体的朝向
-      // const direction = new THREE.Vector3();
-      // direction.subVectors(point, previousPoint).normalize();
+      const direction = new THREE.Vector3();
+      direction.subVectors(point, previousPoint).normalize();
 
-      // // 设置相机的方向
-      // camera.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(camera.position, camera.position.clone().add(direction), new THREE.Vector3(0, 1, 0)));
+      // // // 设置相机的方向
+     
 
-      // currentLength += step;
-      // currentPointIndex = Math.floor(currentLength / step);
+      currentLength += step;
+      currentPointIndex = Math.floor(currentLength / step);
+ // 更新相机位置和方向
+      camera.position.set(point.x, 1, point.z); // 相机高度稍微高一点
+      camera.lookAt(point);
+      camera.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(camera.position, camera.position.clone().add(direction), new THREE.Vector3(0, 1, 0)));
+      }
+     
+
+    
     })
     .onComplete(() => {
+       controls.enabled = true;
       console.log("路径结束");
     })
     .start();
@@ -148,8 +165,7 @@ const moveSquareAlongPath = (points, duration, stopPoints) => {
 const handleAuto = () => {
   eyesValue.value = true;
   controls.enabled = false;
-  // camera.position.set(0, 1, -5);
-  // cubPerson.add(camera);
+ 
 
   const stopPoints = [-9, 0, -5.5]; // 指定停止点的索引
   const points = pathCurve.getPoints(1000);
@@ -159,8 +175,14 @@ const handleAuto = () => {
 };
 
 const changeEyes = () => {
-    controls.enabled = true;
+  //自动巡检切换视角
+
+ if(controls.enabled&&!eyesValue.value){
+  return false 
+ }
+    controls.enabled = false;
   eyesValue.value = !eyesValue.value;
+  console.log(eyesValue.value,'wefwe')
   if (!eyesValue.value) {
     camera.lookAt(0, 0, 0);
     camera.position.set(0, 20, 4);
@@ -169,7 +191,10 @@ const changeEyes = () => {
     controls.target.set(0, 0, 0)
     controls.update();
   } else {
+     camera.position.set(0, 1, -5);
+    
    
+  
   
   }
 };
@@ -315,7 +340,7 @@ const createSquare = () => {
   scene.add(cubPerson);
 };
 const createPoint = () => {
-  console.log(points,'wefw')
+
   for (let i = 0; i < points.length; i++) {
     const geoPerson = new THREE.BoxGeometry(0.2, 0.2, 0.2);
     const matPeron = new THREE.MeshBasicMaterial({ color: "red" });
@@ -403,6 +428,9 @@ const  selectPoinet = (px, py) => {
     console.log(intersect,'intersect')
   let intersectObj = intersect ? intersect.object : null;
   if(intersectObj){
+     state.pointPos.left = px + "px";
+    state.pointPos.top = py + "px";
+   state.pointDisplay = "block";
     curPoint = intersectObj;
      camera.lookAt(
       curPoint.position.x,
@@ -423,8 +451,10 @@ const  selectPoinet = (px, py) => {
     );
     controls.update();
     controls.enabled = true; // 启用轨道控制
+
   }else{
     curPoint = null
+    state.pointDisplay = "none";
   }
 }
 onMounted(() => {
