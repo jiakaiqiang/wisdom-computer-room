@@ -3,7 +3,7 @@
     <div ref="thress" class="three-dom">
       <div
         id="plane"
-        :style="{left: state.planePos.left,top:state.planePos.top,display: state.planeDisplay}"
+        :style="{left: state.planePos.left,top:state.planePos.top,right: state.planePos.right,display: state.planeDisplay}"
       >
         <p>机柜名称：{{ state.curCabinet.name }}</p>
         <p>机柜温度：{{ state.curCabinet.temperature }}°</p>
@@ -14,10 +14,11 @@
         id="video"
         :style="{position:'absolute',left: state.pointPos.left,top:state.pointPos.top,display: state.pointDisplay,width:'100px',height:'100px'}"
       >
-        <video width='200px' autoplay height='200px' controls><source src="https://stream7.iqilu.com/10339/upload_transcode/202002/18/202002181038474liyNnnSzz.mp4" type="video/mp4">Your browser does not support the video tag.</video>
+        <video width='200px'  height='200px' controls><source src="https://stream7.iqilu.com/10339/upload_transcode/202002/18/202002181038474liyNnnSzz.mp4" type="video/mp4">Your browser does not support the video tag.</video>
       </div>
     <el-button @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
-    <el-button @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>
+<!--    <el-button v-if="!curPoint" @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>-->
+    <el-button @click="changeDefaultEyes" style="position: absolute; top: 10px; left:100px">返回默认视角</el-button>
   </div>
 </template>
 
@@ -74,6 +75,7 @@ let renderFunc = {};
 let jkqSelectObect = {
   material: {}
 };
+let  signal  =  ref(false)//单机柜
 let eyesValue = ref(false);
 
 const state = reactive({
@@ -142,7 +144,7 @@ const moveSquareAlongPath = (points, duration, stopPoints) => {
       direction.subVectors(point, previousPoint).normalize();
 
       // // // 设置相机的方向
-     
+
 
       currentLength += step;
       currentPointIndex = Math.floor(currentLength / step);
@@ -163,9 +165,9 @@ const moveSquareAlongPath = (points, duration, stopPoints) => {
 };
 
 const handleAuto = () => {
-  eyesValue.value = true;
+  // eyesValue.value = true;
   controls.enabled = false;
- 
+
 
   const stopPoints = [-9, 0, -5.5]; // 指定停止点的索引
   const points = pathCurve.getPoints(1000);
@@ -173,16 +175,42 @@ const handleAuto = () => {
 
   moveSquareAlongPath(points, duration, stopPoints);
 };
+const changeDefaultEyes = ()=>{
+  if(curCabinet) {
+    //其他的物体只先是线框
+    for (let i = 0; i < scene.children.length; i++) {
+      const element = scene.children[i];
+
+      if (element.isMesh) {
+        if (element.name !== curCabinet.name) {
+
+          element.visible = true
+        }
+      }
+
+    }
+    signal.value=false
+  }
+  camera.lookAt(0, 0, 0);
+  camera.position.set(0, 20, 4);
+  scene.add(camera);
+
+  controls.target.set(0, 0, 0)
+  controls.update();
+  state.pointDisplay='none'
+  state.planeDisplay='none'
+}
 
 const changeEyes = () => {
   //自动巡检切换视角
+//点归为
 
  if(controls.enabled&&!eyesValue.value){
   return false 
  }
     controls.enabled = false;
   eyesValue.value = !eyesValue.value;
-  console.log(eyesValue.value,'wefwe')
+
   if (!eyesValue.value) {
     camera.lookAt(0, 0, 0);
     camera.position.set(0, 20, 4);
@@ -192,10 +220,7 @@ const changeEyes = () => {
     controls.update();
   } else {
      camera.position.set(0, 1, -5);
-    
-   
-  
-  
+
   }
 };
 //加载纹理贴图
@@ -297,12 +322,24 @@ const init = () => {
   animate();
 
   renderer.domElement.addEventListener("dblclick", event => {
+    signal.value =  true
     const px = event.offsetX;
     const py = event.offsetY;
       selectCabinet(px, py);
       selectPoinet(px, py);
     if(curCabinet){
-     
+     //其他的物体只先是线框
+      for (let i = 0; i < scene.children.length; i++) {
+      const element = scene.children[i];
+
+        if(element.isMesh){
+          if (element.name !== curCabinet.name) {
+
+            element.visible =  false
+          }
+        }
+
+    }
     camera.lookAt(
       curCabinet.position.x,
       curCabinet.position.y + 1,
@@ -327,6 +364,9 @@ const init = () => {
   renderer.domElement.addEventListener("mousemove", event => {
     const px = event.offsetX;
     const py = event.offsetY;
+    if(signal.value||curPoint){
+      return false
+    }
     selectCabinet(px, py);
   });
 };
@@ -401,6 +441,10 @@ const selectCabinet = (px, py) => {
   if (intersectObj) {
     state.planePos.left = px + "px";
     state.planePos.top = py + "px";
+    //超出可视区域则显示在左边
+    if(px+200 >= thress.value.clientWidth){
+      state.planePos.right = px + 200 - thress.value.clientWidth
+    }
      state.curCabinet = {
             name: `测试机柜${curCabinet?.name.split("-")[1]}`,
             temperature: 12,
@@ -412,10 +456,12 @@ const selectCabinet = (px, py) => {
       curCabinet = intersectObj;
       intersectObj.material.map = crtTexture("cabinet-hover");
       state.planeDisplay = "block";
+      thress.value.style.cursor = "pointer";
     }
     //如果不存在交叉对象 则取消选中状态
   } else if (curCabinet) {
     curCabinet = null;
+    thress.value.style.cursor = "default";
     state.planeDisplay = "none";
   }
 };
@@ -431,6 +477,7 @@ const  selectPoinet = (px, py) => {
      state.pointPos.left = px + "px";
     state.pointPos.top = py + "px";
    state.pointDisplay = "block";
+
     curPoint = intersectObj;
      camera.lookAt(
       curPoint.position.x,
@@ -455,6 +502,7 @@ const  selectPoinet = (px, py) => {
   }else{
     curPoint = null
     state.pointDisplay = "none";
+
   }
 }
 onMounted(() => {
@@ -478,9 +526,10 @@ window.addEventListener("resize", () => {
   position: absolute;
   top: 0;
   left: 0;
+  width:200px;
   background-color: rgba(0, 0, 0, 0.5);
   color: #fff;
-  padding: 0 18px;
+  padding: 10px 10px;
   transform: translate(12px, -100%);
   display: none;
 }
