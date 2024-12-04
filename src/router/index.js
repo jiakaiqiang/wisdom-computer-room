@@ -27,9 +27,9 @@ let routes =[
                 component:()=>import('@/views/wall.vue')
             },
             {
-                path:'loadermodel',
-                name:'loadermodel',
-                component:()=>import('@/views/loadmodel.vue')
+                path:'model',
+                name:'model',
+                component:()=>import('@/views/model.vue')
             }
         ]
     }
