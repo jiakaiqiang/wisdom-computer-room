@@ -49,7 +49,7 @@ function init() {
   // 创建场景
   scene = new THREE.Scene();
   // 设置背景颜色
-  scene.background = new THREE.Color(0xffffff);
+  scene.background = new THREE.Color('#89b9ea');
 
   // 创建相机
   camera = new THREE.PerspectiveCamera(

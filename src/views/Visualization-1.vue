@@ -275,7 +275,7 @@ const init = () => {
   //设置场景背景天蓝色
 
 
-  scene.background = new THREE.Color(0xffffff);
+  scene.background = new THREE.Color('#89b9ea');
   renderer = new THREE.WebGLRenderer();
   renderer.physicallyCorrectLights = true
   const ambientLight = new THREE.AmbientLight(0xffffff, 1);
