@@ -11,11 +11,7 @@ let routes =[
         },
         redirect:'/Visualization-1',
         children:[
-            {
-                path:'Visualization',
-                name:'Visualization',
-                component:()=>import('@/views/Visualization.vue')
-            },
+
             {
                 path:'Visualization-1',
                 name:'Visualization',
