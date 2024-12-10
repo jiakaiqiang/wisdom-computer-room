@@ -1,15 +1,57 @@
 <template>
-  <div ref="threeContainer" style="width: 100%; height: 100%;">
-    <div
-        id="plane"
-        :style="{left: state.planePos.left,top:state.planePos.top,right: state.planePos.right,display: state.planeDisplay}"
-    >
-      <p>机柜名称：{{ state.curCabinet.name }}</p>
-      <p>机柜温度：{{ state.curCabinet.temperature }}°</p>
-      <p>使用情况：{{ state.curCabinet.count }} / {{ state.curCabinet.capacity }}</p>
+  <div class="cabinet-info"  :style="{display: state.cabinetDisplay,'left':'300px'}">
+    <div class="cabinet-info-title">
+       <div>
+         机柜信息:
+       </div>
+      <div style="margin-left:10px">
+        测试机柜1
+      </div>
     </div>
+    <div class="cabinet">
+      <div class="cabinet-item" v-for="item in cabinetInfo">
+        <div>
+          {{item.name}}
+        </div>
+        <div>
+          {{item.value}}
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div ref="threeContainer" style="width: 100%; height: 100%;">
 
   </div>
+  <div
+
+      :style="{display: state.planeDisplay}"
+  >
+   <div class="cabinet-info" style="right:300px;">
+     <div class="cabinet-info-title">
+          <div class="">
+            设备名称：
+          </div>
+         <div class="">
+             测试名称
+         </div>
+     </div>
+     <div class="cabinet">
+       <div class="cabinet-item" v-for="item in deviceInfo">
+         <div>
+           {{item.name}}
+         </div>
+         <div>
+           {{item.value}}
+         </div>
+       </div>
+
+     </div>
+   </div>
+  </div>
+<!--  <el-button type="primary" icon="">-->
+
+<!--  </el-button>-->
 
 </template>
 
@@ -23,7 +65,7 @@ import {RenderPass} from "three/addons/postprocessing/RenderPass.js";
 import {OutlinePass} from "three/addons/postprocessing/OutlinePass.js";
 
 const threeContainer = ref(null);
-
+let deviceMaterials ={}
 let scene, camera, renderer,deviceList=[] ,controls,currentDevice,outlinePass,composer;
 const raycaster = new THREE.Raycaster();
 const state = reactive({
@@ -32,6 +74,7 @@ const state = reactive({
     top: 0
   },
   planeDisplay: "none",
+  cabinetDisplay:"block",
   curCabinet: {
     name: "Loading……",
     temperature: 0,
@@ -39,6 +82,64 @@ const state = reactive({
     count: 0
   }
 });
+
+const cabinetInfo = reactive([
+  {
+    name:"容量",
+    value:"60"
+  },{
+  name:"电流",
+    value:'20A'
+  },
+  {
+    name:"电压",
+    value:"220v"
+  },
+    {
+      name:"功率",
+      value:"100W"
+    },
+    {
+      name:"厂家",
+      value:"华硕"
+    },
+    {
+      name:"端口数",
+      value:"8"
+    },
+    {
+      name:"宽高",
+      value:"173*868"
+    }
+
+])
+
+const deviceInfo = reactive([
+  {
+    name:"u数",
+    value:'4'
+  },
+    {
+      name:"编号",
+      value:'1'
+    },
+    {
+      name:"型号",
+      value:'ASUS'
+    },
+    {
+      name:"购买日期",
+      value:"2023-05-05"
+    },
+    {
+      name:"厂家",
+      value:"华硕"
+    },
+    {
+      name:"证书",
+      value:"123456789"
+    }
+])
 
 onMounted(() => {
   console.log('-fwefwfewfw')
@@ -75,9 +176,10 @@ function init() {
   directionalLight.position.set(0, 1, 1).normalize();
   createOutline()
   // 加载模型
+  scene.add(new THREE.AxesHelper(10))
   const loader = new GLTFLoader();
   loader.load(
-    'models/cabinet/test11.glb', // 替换为你的模型路径
+    'models/cabinet/test15.glb', // 替换为你的模型路径
     function (cabinet) {
 
       cabinet.scene.traverse((child) => {
@@ -87,13 +189,17 @@ function init() {
 
           if(child.name.indexOf('device')!=-1){
             deviceList.push(child)
+            // 存储原始材质
+            deviceMaterials[child.uuid] = child.material;
+
           }
           child.material = new THREE.MeshStandardMaterial({
             color:color,
             side: THREE.DoubleSide,
-
-            metalness: 0.1, // 根据需要调整
-            roughness:0.5// 根据需要调整
+            transparent: true,
+            opacity: 0.6 ,// 初始透明度
+            metalness: 0.2, // 根据需要调整
+            roughness:0.6// 根据需要调整
           });
         }
       });
@@ -126,12 +232,13 @@ function init() {
   // 处理窗口大小变化
   window.addEventListener('resize', onWindowResize, false);
   renderer.domElement.addEventListener("click", async (event) => {
-    selectDevice(event.offsetX, event.offsetY);
+    selectDevice(event.offsetX, event.offsetY,false);
 
 
   })
   renderer.domElement.addEventListener("dblclick", async (event) => {
-    selectDevice(event.offsetX, event.offsetY);
+
+    selectDevice(event.offsetX, event.offsetY,true);
   })
 }
 //创建外边框
@@ -153,7 +260,7 @@ const createOutline = () => {
   composer.addPass(renderPass);
   composer.addPass(outlinePass);
 }
-const selectDevice = (px, py) => {
+const selectDevice = (px, py,type) => {
 
   const x = (px / threeContainer.value.clientWidth) * 2 - 1;
   const y = -(py / threeContainer.value.clientHeight) * 2 + 1;
@@ -163,24 +270,45 @@ const selectDevice = (px, py) => {
   let intersectObj = intersect ? intersect.object : null;
   console.log(intersectObj,'intersectObj')
   if (intersectObj) {
-    state.planePos.left = px + "px";
-    state.planePos.top = py + "px";
 
-    state.curCabinet = {
-      name: `测试设备`,
-      temperature: 12,
-      capacity: 20,
-      count: 5
-    };
+    // 设置选中设备为高亮
+    intersectObj.material.opacity = 1;
 
+    deviceList.forEach(device => {
+      if (device.uuid !== intersectObj.uuid) {
+        device.material.opacity = 0.5;
+      }
+    });
     currentDevice = intersectObj;
-    state.planeDisplay = "block";
+
     outlinePass.selectedObjects = [intersectObj]
+    if(type){
+      //视图平移
+      console.log(intersectObj,'sfd')
+      //更新父类的世界矩阵
+     //  intersectObj.parent.updateWorldMatrix()
+     //  intersectObj.matrix =  intersectObj.parent.matrixWorld
+     // //  intersectObj.matrix.decompose(intersectObj.position, intersectObj.quaternion, intersectObj.scale)
+     // // console.log(intersectObj.position,'-')
+    camera.position.set(intersectObj.parent.position.x,intersectObj.parent.position.y+0.5,intersectObj.parent.position.z+0.5)
+    camera.lookAt(intersectObj.parent.position.x,intersectObj.parent.position.y+0.5,intersectObj.parent.position.z)
+    controls.target.set(intersectObj.parent.position.x,intersectObj.parent.position.y+0.5,intersectObj.parent.position.z)
+    controls.update()
+      state.cabinetDisplay= 'none'
+    }else{
+      state.planeDisplay = 'block'
+    }
+
     //对应的设备弹出 并且加外边框
   }else{
     currentDevice = null
-    state.planeDisplay = "none"
+    state.planeDisplay = 'none'
+    state.cabinetDisplay =  'block'
     outlinePass.selectedObjects = [];
+    // 恢复所有设备的透明度
+    deviceList.forEach(device => {
+      device.material.opacity = 0.5;
+    })
   }
 
 }
@@ -197,15 +325,45 @@ function onWindowResize() {
   width: 100%;
   height: 100%;
 }
-#plane {
+.cabinet-info{
+  border-radius: 10px;
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 200px;
+
+  top:300px;
+  width:300px;
+
+  background-color: #519ddf;
+  color:white;
+  padding:10px 10px;
+  .cabinet-info-title{
+    display: flex;
+    margin-bottom:10px;
+    justify-content: space-between;
+    border-bottom:1px solid #d6d2d2;
+    padding-bottom: 8px;
+    &>div:nth-of-type(1){
+      font-size:18px;
+    }
+  }
+  .cabinet {
+    .cabinet-item{
+      display: flex;
+      justify-content: space-between;
+      line-height:20px;
+
+    }
+  }
+
+}
+#planes {
+  position: absolute;
+  top: 300px;
+  right:300px;
+  width: 300px;
   background-color: rgba(0, 0, 0, 0.5);
   color: #fff;
   padding: 10px 10px;
-  transform: translate(12px, -100%);
+
   display: none;
 }
 </style>

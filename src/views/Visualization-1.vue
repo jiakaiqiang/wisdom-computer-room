@@ -1,5 +1,5 @@
 <template>
-  <div style="height:100%;width:100%">
+  <div style="height:100%;width:100%;display: flex;">
     <div v-if="showModelAll" ref="thress" class="three-dom">
 
       <div
@@ -21,12 +21,13 @@
         Your browser does not support the video tag.
       </video>
     </div>
-    <cabint v-if="!showModelAll" class="three-dom"></cabint>
+
     <!---->
-    <el-button @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
-    <!--    <el-button v-if="!curPoint" @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>-->
-    <el-button @click="changeDefaultEyes" style="position: absolute; top: 10px; left:100px">返回默认视角</el-button>
+    <cabint v-if="!showModelAll" class="three-dom"></cabint>
   </div>
+  <el-button @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
+  <!--    <el-button v-if="!curPoint" @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>-->
+  <el-button @click="changeDefaultEyes" style="position: absolute; top: 10px; left:100px">返回默认视角</el-button>
 </template>
 
 <script setup>
