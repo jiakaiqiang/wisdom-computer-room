@@ -359,7 +359,7 @@ const init = () => {
     if (signal.value) {
       return false
     }
-    signal.value = true
+
     const px = event.offsetX;
     const py = event.offsetY;
     selectCabinet(px, py);
