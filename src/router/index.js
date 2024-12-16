@@ -26,6 +26,11 @@ let routes =[
                 path:'model',
                 name:'model',
                 component:()=>import('@/views/model.vue')
+            },
+            {
+                path:'model1',
+                name:'model1',
+                component:()=>import('@/views/model1.vue')
             }
         ]
     }

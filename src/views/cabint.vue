@@ -175,8 +175,7 @@ function init() {
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
   directionalLight.position.set(0, 1, 1).normalize();
   createOutline()
-  // 加载模型
-  scene.add(new THREE.AxesHelper(10))
+
   const loader = new GLTFLoader();
   loader.load(
     'models/cabinet/test15.glb', // 替换为你的模型路径

@@ -24,22 +24,22 @@
 
     <!---->
     <cabint v-if="!showModelAll" class="three-dom"></cabint>
+
+    <el-button @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
+    <!--    <el-button v-if="!curPoint" @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>-->
+    <el-button @click="changeDefaultEyes" style="position: absolute; top: 10px; left:100px">返回默认视角</el-button>
   </div>
-  <el-button @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
-  <!--    <el-button v-if="!curPoint" @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>-->
-  <el-button @click="changeDefaultEyes" style="position: absolute; top: 10px; left:100px">返回默认视角</el-button>
+
 </template>
 
 <script setup>
 import {ref, onMounted, reactive, watch, nextTick} from "vue";
 import cabint from './cabint.vue'
-import {EffectComposer} from "three/examples/jsm/postprocessing/EffectComposer.js";
-import {OutlinePass} from "three/examples/jsm/postprocessing/OutlinePass.js";
-import {RenderPass} from "three/examples/jsm/postprocessing/RenderPass.js";
+
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
-import {loadingModel} from "@/common/three/loadingModel.js";
+
 
 import * as TWEEN from "@tweenjs/tween.js";
 import {PathGeometry, PathPointList} from "three.path";
@@ -51,8 +51,8 @@ watch(() => showModelAll.value, (val) => {
     nextTick(() => {
       init()
     })
-  }else{
-    signal.value =  false
+  } else {
+    signal.value = false
     console.log('wefwefw------------------------')
   }
 })
@@ -183,7 +183,7 @@ const moveSquareAlongPath = (points, duration, stopPoints) => {
       })
       .onComplete(() => {
         controls.enabled = true;
-        signal.value =  false
+        signal.value = false
         console.log("路径结束");
       })
       .start();
@@ -191,7 +191,7 @@ const moveSquareAlongPath = (points, duration, stopPoints) => {
 
 const handleAuto = () => {
   // eyesValue.value = true;
-  controls.enabled = false;
+  //controls.enabled = false;
   showModelAll.value = true
 
   const stopPoints = [-9, 0, -5.5]; // 指定停止点的索引
@@ -202,22 +202,10 @@ const handleAuto = () => {
 };
 const changeDefaultEyes = () => {
   showModelAll.value = true
-  let data = scene.children.find(item => item.isGroup && item.name == 'box')
-  if (data) {
-    scene.remove(data)
-  }
-  if (curCabinet) {
-    //其他的物体只先是线框
-    for (let i = 0; i < scene.children.length; i++) {
-      const element = scene.children[i];
 
-      if (element.isMesh) {
-        element.visible = true
-      }
+  //点信息重置
+  curPoint = null
 
-    }
-    signal.value = false
-  }
   camera.lookAt(0, 0, 0);
   camera.position.set(0, 20, 4);
   scene.add(camera);
@@ -256,8 +244,8 @@ const crtTexture = imgName => {
   if (!curTexture) {
     curTexture = new THREE.TextureLoader().load(`public/models/${imgName}.jpg`);
     curTexture.flipY = false;
-    curTexture.wrapS = 0.5;
-    curTexture.wrapT = 0.5;
+    curTexture.wrapS = THREE.RepeatWrapping;
+    curTexture.wrapT =THREE.RepeatWrapping;
     maps.set(imgName, curTexture);
   }
   return curTexture;
@@ -339,10 +327,8 @@ const init = () => {
   scene.add(new THREE.AxesHelper(5));
 
 
-
   renderer.setSize(thress.value.clientWidth, thress.value.clientHeight);
   thress.value.appendChild(renderer.domElement);
-
 
 
   controls = new OrbitControls(camera, renderer.domElement);
@@ -362,22 +348,27 @@ const init = () => {
 
     const px = event.offsetX;
     const py = event.offsetY;
-    selectCabinet(px, py);
-    selectPoinet(px, py);
+    //selectCabinet(px, py);
+
     // selectDevice(px,py)
     if (curCabinet) {
-
-      //其他的物体只先是线框
-      for (let i = 0; i < scene.children.length; i++) {
-        const element = scene.children[i];
-
-        if (element.isMesh) {
-          element.visible = false
-        }
-
-      }
+      //
+      // //其他的物体只先是线框
+      // for (let i = 0; i < scene.children.length; i++) {
+      //   const element = scene.children[i];
+      //
+      //   if (element.isMesh) {
+      //     element.visible = true
+      //   }
+      //
+      // }
+      curCabinet = null
       showModelAll.value = false
+    }else{
+      selectPoinet(px, py);
     }
+
+
 
   });
   renderer.domElement.addEventListener("mousemove", event => {
@@ -470,12 +461,14 @@ const selectCabinet = (px, py) => {
       capacity: 20,
       count: 5
     };
-
+       console.log(intersectObj !== curCabinet,'intersectObj !== curCabinet')
     if (intersectObj !== curCabinet) {
-      curCabinet = intersectObj;
+
       intersectObj.material.map = crtTexture("cabinet-hover");
+
       state.planeDisplay = "block";
       thress.value.style.cursor = "pointer";
+      curCabinet = intersectObj;
     }
     //如果不存在交叉对象 则取消选中状态
   } else if (curCabinet) {
