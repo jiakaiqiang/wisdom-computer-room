@@ -31,6 +31,10 @@ let routes =[
                 path:'model1',
                 name:'model1',
                 component:()=>import('@/views/model1.vue')
+            },{
+              path:"visualization",
+                name:'visualization1',
+                component:()=>import('@/views/visualization.vue')
             }
         ]
     }

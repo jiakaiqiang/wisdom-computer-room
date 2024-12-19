@@ -26,6 +26,7 @@ export default {
 
       // 创建场景、相机和渲染器
       const scene = new THREE.Scene();
+      scene.background = new THREE.Color( 0xa0a0a0 );
       const camera = new THREE.PerspectiveCamera(75, containerElement.clientWidth / containerElement.clientHeight, 0.001, 1000);
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(containerElement.clientWidth, containerElement.clientHeight);
@@ -41,7 +42,7 @@ export default {
       scene.add(ambientLight);
       let pointLight = new THREE.PointLight( 0xffffff, 1 );
       pointLight.position.copy( camera.position );
-      scene.add( pointLight);
+      scene.add(pointLight);
 
 
 
@@ -65,18 +66,18 @@ export default {
       const objLoader = new GLTFLoader();
       objLoader.setDRACOLoader( dracoLoader );
       // 加载 OBJ 文件
-      objLoader.load('/public/gltf/LittlestTokyo.glb', (object) => {
+      objLoader.load('/public/models/scene1.glb', (object) => {
 
-        object.scene.position.set( 1, 1, 0 );
-        object.scene.scale.set( 0.01, 0.01, 0.01 );
-        object.scene.traverse((child) => {
-          if (child.isMesh) {
-            child.material.envMap = envMap;
-          }
-        });
-        console.log(object,'object.animations')
-       mixer = new THREE.AnimationMixer( object.scene );
-        mixer.clipAction( object.animations[ 0 ] ).play();
+       //  object.scene.position.set( 1, 1, 0 );
+       //  object.scene.scale.set( 0.01, 0.01, 0.01 );
+       //  object.scene.traverse((child) => {
+       //    if (child.isMesh) {
+       //      child.material.envMap = envMap;
+       //    }
+       //  });
+       //  console.log(object,'object.animations')
+       // mixer = new THREE.AnimationMixer( object.scene );
+       //  mixer.clipAction( object.animations[ 0 ] ).play();
         scene.add(object.scene);
       }, undefined, (error) => {
         console.error('An error happened while loading OBJ file:', error);
