@@ -168,7 +168,7 @@ const handleAuto = () => {
 
   const stopPoints = [-9, 0, -5.5]; // 指定停止点的索引
   const points = pathCurve.getPoints(1000);
-  const duration = 12000; // 总时间
+  const duration = 20000; // 总时间
 
   moveSquareAlongPath(points, duration, stopPoints);
 };
@@ -264,9 +264,9 @@ const init = () => {
   });
   //加載模型
   let  loader =  new GLTFLoader()
-  loader.load('/public/models/scene11.glb',gltf=>{
+  loader.load('/public/models/scene16.glb',gltf=>{
     let data =  gltf.scene.getObjectByName('Box')
-    console.log(gltf.scene,'data')
+
      basepoint  =  data.position
     //计算模型距离原点的距离
     gltf.scene.position.set(Math.abs(basepoint.x),0,Math.abs(basepoint.z))
@@ -283,7 +283,7 @@ const init = () => {
   })
 
 
-  // renderPath(renderer);
+   renderPath(renderer);
 
 
   // cubPerson.add(camera);
@@ -355,7 +355,7 @@ const renderPath = async renderer => {
   });
 
   pathToShow = new THREE.Mesh(geometry, material);
-  pathToShow.position.y = -1;
+  pathToShow.position.y = -0.5;
   pathToShow.name = "path";
   scene.add(pathToShow);
 };
@@ -377,19 +377,19 @@ const selectPoinet = (px, py) => {
     curPoint = intersectObj;
     camera.lookAt(
         curPoint.position.x,
-        curPoint.position.y + 1,
+        0.5 ,
         curPoint.position.z
     );
 
     camera.position.set(
         curPoint.position.x,
-        curPoint.position.y + 1,
+        0.5 ,
         curPoint.position.z
     );
 
     controls.target.set(
         curPoint.position.x - 0.1,
-        curPoint.position.y + 1,
+        0.5 ,
         curPoint.position.z
     );
     controls.update();

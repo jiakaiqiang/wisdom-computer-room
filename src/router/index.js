@@ -9,7 +9,7 @@ let routes =[
         meta: {
             title: "基础"
         },
-        redirect:'/Visualization-1',
+        redirect:'/visualization',
         children:[
 
             {
