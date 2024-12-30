@@ -31,13 +31,13 @@ instacence.interceptors.request.use(config => {
 })
 
 instacence.interceptors.response.use(res => {
-    const  code =  res.data.data.code
-    if(code!=200){
+    const  code =  res
+    console.log(code,'code')
+    if(code.status!=200){
         ElMessage.error(errorCode[code])
     }
 
-
-
-
     return res.data
 })
+
+export default instacence

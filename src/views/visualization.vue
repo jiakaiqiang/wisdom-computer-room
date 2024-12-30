@@ -26,23 +26,49 @@
     <cabint v-if="!showModelAll" class="three-dom"></cabint>
 
     <el-button @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
+    <el-button @click="handleAssign" style="position: absolute; top: 10px; left:100px">指定巡检</el-button>
     <!--    <el-button v-if="!curPoint" @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>-->
-    <el-button @click="changeDefaultEyes" style="position: absolute; top: 10px; left:100px">返回默认视角</el-button>
+    <el-button @click="changeDefaultEyes" style="position: absolute; top: 10px; left:200px">返回默认视角</el-button>
   </div>
 
 </template>
 
 <script setup>
-import {ref, onMounted, reactive, watch, nextTick} from "vue";
+import {ref, onMounted, reactive, watch, nextTick, getCurrentInstance} from "vue";
 import cabint from './cabint.vue'
-import {handlePointData,createSquare,createPoint} from './pointData.js'
+import {handlePointData, createSquare, createPoint, PointData, handeLineData} from './pointData.js'
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
-
+import  CreateWebSocket from '@/axios/websocket.js'
 
 import * as TWEEN from "@tweenjs/tween.js";
 import {PathGeometry, PathPointList} from "three.path";
+import jsSHA from 'jssha'
+const shaObj = new jsSHA('SHA-512', 'TEXT', {
+  encoding: 'UTF8',
+  numRounds: 3088
+})
+shaObj.update('QAZWSXmoon890@')
+let newPassword = shaObj.getHash('HEX')
+const {proxy}  =  getCurrentInstance()
+import {setToken} from "@/util/token.js";
+
+proxy.$request({
+     url: 'login/thirdPartyLogin',
+     method: 'post',
+     data: {
+       account: 'super',
+       password: newPassword
+     }
+}).then(res => {
+  if(res.code==0){
+    //存储cookie
+    setToken(res.data.Token)
+
+  }
+
+})
 
 const thress = ref(null);
 let showModelAll = ref(true)
@@ -160,18 +186,210 @@ const moveSquareAlongPath = (points, duration, stopPoints) => {
       })
       .start();
 };
+const socketwebrobot = new CreateWebSocket('ws://10.173.30.81/webSocket')
+socketwebrobot.connection(()=>{
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "subscribe",
+        id: "subscribe:/map:1",
+        type: "nav_msgs/OccupancyGrid",
+        topic: "/map",
+        compression: "png",
+        throttle_rate: 0,
+        queue_length: 0,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "advertise",
+        id: "advertise:/move_base/goal:2",
+        type: "move_base_msgs/MoveBaseActionGoal",
+        topic: "/move_base/goal",
+        latch: false,
+        queue_size: 100,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "advertise",
+        id: "advertise:/move_base/cancel:3",
+        type: "actionlib_msgs/GoalID",
+        topic: "/move_base/cancel",
+        latch: false,
+        queue_size: 100,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "subscribe",
+        id: "subscribe:/move_base/status:4",
+        type: "actionlib_msgs/GoalStatusArray",
+        topic: "/move_base/status",
+        compression: "none",
+        throttle_rate: 0,
+        queue_length: 0,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "subscribe",
+        id: "subscribe:/move_base/feedback:5",
+        type: "move_base_msgs/MoveBaseActionFeedback",
+        topic: "/move_base/feedback",
+        compression: "none",
+        throttle_rate: 0,
+        queue_length: 0,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "subscribe",
+        id: "subscribe:/move_base/result:6",
+        type: "move_base_msgs/MoveBaseActionResult",
+        topic: "/move_base/result",
+        compression: "none",
+        throttle_rate: 0,
+        queue_length: 0,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "subscribe",
+        id: "subscribe:/amcl_pose:7",
+        type: "geometry_msgs/PoseWithCovarianceStamped",
+        topic: "/amcl_pose",
+        compression: "none",
+        throttle_rate: 100,
+        queue_length: 0,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "subscribe",
+        id: "subscribe:/map_metadata:8",
+        type: "nav_msgs/MapMetaData",
+        topic: "/map_metadata",
+        compression: "none",
+        throttle_rate: 0,
+        queue_length: 0,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "subscribe",
+        id: "subscribe:/amcl_pose:9",
+        type: "geometry_msgs/PoseWithCovarianceStamped",
+        topic: "/amcl_pose",
+        compression: "none",
+        throttle_rate: 0,
+        queue_length: 0,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "subscribe",
+        id: "subscribe:/robot_vel:10",
+        type: "geometry_msgs/Twist",
+        topic: "/robot_vel",
+        compression: "none",
+        throttle_rate: 0,
+        queue_length: 0,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "advertise",
+        id: "advertise:/cmd_vel:11",
+        type: "geometry_msgs/Twist",
+        topic: "/cmd_vel",
+        latch: false,
+        queue_size: 100,
+      })
+  );
+  socketwebrobot?.send(
+      JSON.stringify({
+        op: "publish",
+        id: "publish:/cmd_vel:12",
+        topic: "/cmd_vel",
+        msg: {
+          linear: { x: 0, y: 0, z: 0 },
+          angular: { x: 0, y: 0, z: 0 },
+        },
+        latch: false,
+      })
+  );
+})
+socketwebrobot.onopen(()=>{})
+socketwebrobot.onmessage((a)=>{
 
+  const hh = JSON.parse("string" == typeof a ? a : a.data);
+  if(hh.topic && hh.topic == "/amcl_pose"){
+    let coordinate = hh.msg.pose.pose.position; // 坐标
+    if(cubPerson){
+      cubPerson.position.set(coordinate.x, 0, -coordinate.y)
+    }
+    console.log(coordinate)
+  }
+
+})
 const handleAuto = () => {
   // eyesValue.value = true;
   //controls.enabled = false;
+  scene.remove(...pointArr)
+  points =  handlePointData(thress.value.clientWidth,thress.value.clientHeight,PointData)
+  pathCurve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0);
+
+  pointArr =  createPoint(points);
+  pointArr.forEach(item=>{
+    scene.add(item)
+  })
+  renderPath(renderer);
+
+
   showModelAll.value = true
 
   const stopPoints = [-9, 0, -5.5]; // 指定停止点的索引
-  const points = pathCurve.getPoints(1000);
+
   const duration = 20000; // 总时间
 
-  moveSquareAlongPath(points, duration, stopPoints);
+  moveSquareAlongPath(pathCurve.getPoints(1000), duration, stopPoints);
 };
+//指定巡检
+const handleAssign = ()=>{
+
+  //删除环境中的点和线
+  scene.remove(...pointArr)
+
+
+
+
+
+
+  proxy.$request({
+    method:"post",
+    url:'missionExecute/execute',
+    data:{
+
+      missionId: 1,
+      missionTypeId: 1
+    }
+  }).then(res=>{
+    //创建webSocket
+
+//获取巡检点
+
+    console.log(handeLineData)
+    points =  handlePointData(thress.value.clientWidth,thress.value.clientHeight,handeLineData.position_list)
+    pathCurve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0);
+
+    pointArr =  createPoint(points);
+    pointArr.forEach(item=>{
+      scene.add(item)
+    })
+    renderPath(renderer);
+  })
+
+}
 const changeDefaultEyes = () => {
   showModelAll.value = true
 
@@ -252,9 +470,9 @@ const init = () => {
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
   directionalLight.position.set(0, 40, 20)
   scene.add(directionalLight);
-  points =  handlePointData(thress.value.clientWidth,thress.value.clientHeight,basepoint)
+
   cubPerson =  createSquare()
-  pathCurve = new THREE.CatmullRomCurve3(points, false, "catmullrom", 0);
+
   controls = new OrbitControls(camera, renderer.domElement);
   controls.minPolarAngle=0
   controls.maxPolarAngle=Math.PI/2 - 0.05
@@ -264,8 +482,14 @@ const init = () => {
   });
   //加載模型
   let  loader =  new GLTFLoader()
-  loader.load('/public/models/scene16.glb',gltf=>{
+  loader.load('/public/models/sceneNew.glb',gltf=>{
+    console.log(gltf,'gltf')
+    // gltf.scene.traverse(item=>{
+    //
+    //
+    // })
     let data =  gltf.scene.getObjectByName('Box')
+
 
      basepoint  =  data.position
     //计算模型距离原点的距离
@@ -275,15 +499,12 @@ const init = () => {
     controls.target.set(Math.abs(basepoint.x),0,Math.abs(basepoint.z))
     controls.update()
     scene.add(gltf.scene)
-    pointArr =  createPoint(points);
-    pointArr.forEach(item=>{
-      scene.add(item)
-    })
+
 
   })
 
 
-   renderPath(renderer);
+
 
 
   // cubPerson.add(camera);

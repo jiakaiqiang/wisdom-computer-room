@@ -5617,10 +5617,11 @@ export const PointData =  [
         "stopId": null
     }
 ]
-
-export const handlePointData = (cx,cy,basepoint) => {
+let lineData =  "{\"task_name\":\"巡检任务\",\"work_id\":1872580668173504512,\"create_time\":\"2024-12-27T17:49:57\",\"num\":14,\"robot_path_id\":1,\"task_id\":\"1872580668173504512\",\"inspect_project_detail_id\":1872580668173504512,\"task_type_name\":\"自动巡检\",\"task_type_id\":1,\"robot_id\":1,\"task_type\":1,\"position_list\":[{\"name\":\"巡检点1\",\"robot_path_id\":1,\"position\":{\"x\":1.2,\"y\":0.02,\"yaw\":0.03},\"type\":1,\"position_num\":1},{\"name\":\"巡检点2\",\"robot_path_id\":1,\"position\":{\"x\":1.23,\"y\":-0.62,\"yaw\":-1.53},\"type\":1,\"position_num\":2},{\"name\":\"巡检点3\",\"robot_path_id\":1,\"position\":{\"x\":1.25,\"y\":-1.07,\"yaw\":-1.52},\"type\":1,\"position_num\":3},{\"name\":\"巡检点4\",\"robot_path_id\":1,\"position\":{\"x\":1.27,\"y\":-1.52,\"yaw\":-1.51},\"type\":1,\"position_num\":4},{\"name\":\"巡检点5\",\"robot_path_id\":1,\"position\":{\"x\":1.28,\"y\":-1.9,\"yaw\":-1.51},\"type\":1,\"position_num\":5},{\"name\":\"巡检点8\",\"robot_path_id\":1,\"position\":{\"x\":1.3,\"y\":-2.8,\"yaw\":-1.52},\"type\":1,\"position_num\":6},{\"name\":\"巡检点9\",\"robot_path_id\":1,\"position\":{\"x\":1.3,\"y\":-3,\"yaw\":-1.52},\"type\":1,\"position_num\":7},{\"name\":\"返回点-001\",\"robot_path_id\":1,\"position\":{\"x\":0.83,\"y\":-1.47,\"yaw\":2.11},\"type\":1,\"position_num\":8},{\"name\":\"充电预备点\",\"robot_path_id\":1,\"position\":{\"x\":0.54,\"y\":0,\"yaw\":0.04},\"type\":3,\"position_num\":9},{\"name\":\"充电点\",\"robot_path_id\":1,\"position\":{\"x\":0.13,\"y\":-0.01,\"yaw\":0.04},\"type\":4,\"position_num\":10}],\"status\":3}"
+export const handeLineData =  JSON.parse(lineData)
+export const handlePointData = (cx,cy,PointDatas) => {
    let list  =[]
-    PointData.forEach(item=>{
+    PointDatas.forEach(item=>{
 
         let data =  item.position
 
@@ -5638,6 +5639,7 @@ export const createSquare = (position) => {
     const matPeron = new THREE.MeshBasicMaterial({color: 0x00ff00});
     const cubPerson = new THREE.Mesh(geoPerson, matPeron);
     cubPerson.position.set(0.2,0,0);
+
     return cubPerson
 };
 
@@ -5650,7 +5652,7 @@ export const createPoint = (points) => {
         let point = new THREE.Mesh(geoPerson, matPeron);
         point.position.copy(points[i])
         point.position.y = 0
-
+        point.name='point'
         pointList.push(point);
     }
     return pointList
