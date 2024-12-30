@@ -7,8 +7,10 @@
           :style="{left: state.planePos.left,top:state.planePos.top,right: state.planePos.right,display: state.planeDisplay}"
       >
         <p>机柜名称：{{ state.curCabinet.name }}</p>
-        <p>机柜温度：{{ state.curCabinet.temperature }}°</p>
-        <p>使用情况：{{ state.curCabinet.count }} / {{ state.curCabinet.capacity }}</p>
+
+        <p>上架设备数:{{state.curCabinet.shelfNum}}个</p>
+        <p>已使用：{{ state.curCabinet.usedNum }}U </p>
+        <p>总u数：{{ state.curCabinet.cabinetU }}U</p>
       </div>
     </div>
     <div
@@ -23,25 +25,37 @@
     </div>
 
     <!---->
-    <cabint v-if="!showModelAll" class="three-dom"></cabint>
+    <cabint v-if="!showModelAll" :currentCabinet="curCabinet" class="three-dom"></cabint>
 
-    <el-button @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
-    <el-button @click="handleAssign" style="position: absolute; top: 10px; left:100px">指定巡检</el-button>
+    <el-button v-if="showModelAll" @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
+    <el-button  v-if="showModelAll" @click="handleAssign" style="position: absolute; top: 10px; left:100px" :disabled="!showModelAll">指定巡检</el-button>
     <!--    <el-button v-if="!curPoint" @click="changeEyes" style="position: absolute; top: 10px; left:100px">切换视角</el-button>-->
-    <el-button @click="changeDefaultEyes" style="position: absolute; top: 10px; left:200px">返回默认视角</el-button>
+    <el-button   @click="changeDefaultEyes" :style="{position: 'absolute', top: '10px' ,left:!showModelAll?'10px':'200px'}">返回默认视角</el-button>
+    <el-button v-if="showModelAll" @click="generateMois" style="position: absolute; top: 10px; left:340px">添加湿度</el-button>
+    <el-button v-if="showModelAll"  @click="generateHeatMap" style="position: absolute; top: 10px; left:440px">添加温度</el-button>
   </div>
 
 </template>
 
 <script setup>
-import {ref, onMounted, reactive, watch, nextTick, getCurrentInstance} from "vue";
+import {ref, onMounted, reactive, watch, nextTick, getCurrentInstance, onBeforeMount} from "vue";
 import cabint from './cabint.vue'
-import {handlePointData, createSquare, createPoint, PointData, handeLineData} from './pointData.js'
+import {
+  handlePointData,
+  createSquare,
+  createPoint,
+  PointData,
+  handeLineData,
+  cabinetData,
+  tempData,
+  mosi
+} from './pointData.js'
+import addHeatmapPlane from '@/views/yuntu.js'
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import  CreateWebSocket from '@/axios/websocket.js'
-
+import {addEvent,removeEvent,triggerEvent} from '@/util/Event.js'
 import * as TWEEN from "@tweenjs/tween.js";
 import {PathGeometry, PathPointList} from "three.path";
 import jsSHA from 'jssha'
@@ -53,6 +67,7 @@ shaObj.update('QAZWSXmoon890@')
 let newPassword = shaObj.getHash('HEX')
 const {proxy}  =  getCurrentInstance()
 import {setToken} from "@/util/token.js";
+
 
 proxy.$request({
      url: 'login/thirdPartyLogin',
@@ -182,6 +197,9 @@ const moveSquareAlongPath = (points, duration, stopPoints) => {
       .onComplete(() => {
         controls.enabled = true;
         signal.value = false
+        scene.remove(...pointArr)
+        //删除路径
+        scene.remove(pathToShow)
         console.log("路径结束");
       })
       .start();
@@ -332,6 +350,13 @@ socketwebrobot.onmessage((a)=>{
   }
 
 })
+socketwebrobot.close(()=>{
+  scene.remove(...pointArr)
+  scene.remove(pathToShow)
+})
+
+
+
 const handleAuto = () => {
   // eyesValue.value = true;
   //controls.enabled = false;
@@ -358,8 +383,10 @@ const handleAuto = () => {
 const handleAssign = ()=>{
 
   //删除环境中的点和线
-  scene.remove(...pointArr)
 
+  scene.remove(...pointArr)
+  //删除路径
+  scene.remove(pathToShow)
 
 
 
@@ -483,11 +510,14 @@ const init = () => {
   //加載模型
   let  loader =  new GLTFLoader()
   loader.load('/public/models/sceneNew.glb',gltf=>{
-    console.log(gltf,'gltf')
-    // gltf.scene.traverse(item=>{
-    //
-    //
-    // })
+
+    gltf.scene.traverse(item=>{
+    if(item.isMesh){
+      if (item.name.includes("cabinet")) {
+        cabinets.push(item);
+      }
+    }
+    })
     let data =  gltf.scene.getObjectByName('Box')
 
 
@@ -531,8 +561,23 @@ const init = () => {
 
     const px = event.offsetX;
     const py = event.offsetY;
+    if (curCabinet) {
+      //
+      // //其他的物体只先是线框
+      // for (let i = 0; i < scene.children.length; i++) {
+      //   const element = scene.children[i];
+      //
+      //   if (element.isMesh) {
+      //     element.visible = true
+      //   }
+      //
+      // }
+      curCabinet = null
+      showModelAll.value = false
+    }else{
+      selectPoinet(px, py);
+    }
 
-    selectPoinet(px, py);
 
 
   });
@@ -542,7 +587,7 @@ const init = () => {
     if (signal.value || curPoint) {
       return false
     }
-
+    selectCabinet(px,py)
   });
 };
 //绘制巡检点
@@ -622,10 +667,128 @@ const selectPoinet = (px, py) => {
 
   }
 }
-
+// const cabintList  =  ref([])
+onBeforeMount(()=>{
+ // getCabint()
+})
 onMounted(() => {
   init();
+  //添加响应式事件
+
 });
+
+const selectCabinet = (px, py) => {
+  const x = (px / thress.value.clientWidth) * 2 - 1;
+  const y = -(py / thress.value.clientHeight) * 2 + 1;
+  //设置鼠标的裁剪坐标和相机的设置射线投射器
+  raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+  //获取射线投射器和场景中对象的交点
+
+  const intersect = raycaster.intersectObjects(cabinets)[0];
+
+  let intersectObj = intersect ? intersect.object : null;
+
+
+//如果当前对象和交叉对象不同 则取消选中状态
+  if (curCabinet && curCabinet !== intersectObj) {
+    curCabinet.material.map = crtTexture("cabinet");
+  }
+  //如果存在交叉对象 则进行选中
+  if (intersectObj) {
+    state.planePos.left = px + "px";
+    state.planePos.top = py + "px";
+    //超出可视区域则显示在左边
+const data =  cabinetData.find(item=>item.id==intersectObj.parent.userData.cabinetId)
+    console.log(data)
+    state.curCabinet = {
+
+      name:data.name+'机柜',
+      shelfNum: data.shelfNum,
+      usedNum:data.usedNum,
+      cabinetU: data.cabinetU
+    };
+    console.log(intersectObj !== curCabinet,'intersectObj !== curCabinet')
+    if (intersectObj !== curCabinet) {
+
+     // intersectObj.material.map = crtTexture("cabinet-hover");
+
+      state.planeDisplay = "block";
+      thress.value.style.cursor = "pointer";
+      curCabinet = intersectObj;
+    }
+    //如果不存在交叉对象 则取消选中状态
+  } else if (curCabinet) {
+    curCabinet = null;
+    thress.value.style.cursor = "default";
+    state.planeDisplay = "none";
+  }
+};
+const getCabint = ()=>{
+    proxy.$request({
+      method:"post",
+      url:"home/selectRackListByDataCenterId/1",
+
+    }).then(res=>{
+      console.log(res,'re')
+      cabintList.value =  res.data
+    })
+}
+//生成热力图
+let heatmapPlane = null
+let heatmapPlaneMois = null
+const generateHeatMap = ()=>{
+  console.log(heatmapPlane,'wefw')
+  scene.remove(heatmapPlaneMois)
+
+  if(heatmapPlane){
+    scene.remove(heatmapPlane)
+    heatmapPlane = null
+    return  false
+  }
+  function handlePosint(){
+    return  tempData.map(items=>{
+      let data =  PointData.find(item=>items.positionId==item.robotPositionId)
+
+      if(data){
+        items = {
+          ...items,
+          ...data.position,
+          y:-data.position.y
+        }
+      }
+      console.log(items)
+      return items
+    })
+  }
+  heatmapPlane = addHeatmapPlane(scene,handlePosint(),basepoint)
+}
+
+const generateMois = ()=>{
+  function handlePosint(){
+    return  mosi.map(items=>{
+      let data =  PointData.find(item=>items.positionId==item.robotPositionId)
+
+      if(data){
+        items = {
+          ...items,
+          ...data.position,
+          y:-data.position.y
+        }
+      }
+      console.log(items)
+      return items
+    })
+  }
+
+  scene.remove(heatmapPlane)
+  if(heatmapPlaneMois){
+    scene.remove(heatmapPlaneMois)
+    heatmapPlaneMois = null
+    return  false
+  }
+
+  heatmapPlaneMois=  addHeatmapPlane(scene,handlePosint(),basepoint)
+}
 window.addEventListener("resize", () => {
   renderer.setSize(thress.value.clientWidth, thress.value.clientHeight);
   camera.aspect = thress.value.clientWidth / thress.value.clientHeight;

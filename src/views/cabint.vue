@@ -5,7 +5,7 @@
          机柜信息:
        </div>
       <div style="margin-left:10px">
-        测试机柜1
+        {{ currentCabint.name }}
       </div>
     </div>
     <div class="cabinet">
@@ -63,7 +63,12 @@ import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {EffectComposer} from "three/addons/postprocessing/EffectComposer.js";
 import {RenderPass} from "three/addons/postprocessing/RenderPass.js";
 import {OutlinePass} from "three/addons/postprocessing/OutlinePass.js";
-
+const  currentCabint =  defineProps({
+  currentCabinet:{
+    type:Object,
+    default:()=>{}
+  }
+})
 const threeContainer = ref(null);
 let deviceMaterials ={}
 let scene, camera, renderer,deviceList=[] ,controls,currentDevice,outlinePass,composer;
