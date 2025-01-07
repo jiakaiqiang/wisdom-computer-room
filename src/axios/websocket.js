@@ -4,10 +4,12 @@ export default class CreateWebSocket {
     constructor(url) {
       this.heartbeatInterval = 30000; // 心跳间隔时间，单位为毫秒
       this.heartbeatTimer = null;
+      console.log(url,'wefwfew')
       this.url =  url
       this.sendBack =  ()=>{}
     }
     connection(sendBack){
+
       this.websocketInstance =  new WebSocket(this.url);
       this.sendBack =  sendBack
     }

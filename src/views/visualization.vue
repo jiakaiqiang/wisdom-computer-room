@@ -25,7 +25,7 @@
     </div>
 
     <!---->
-    <cabint v-if="!showModelAll" :currentCabinet="curCabinet" class="three-dom"></cabint>
+    <cabint v-if="!showModelAll" :currentCabinet="state.curCabinet" class="three-dom"></cabint>
 
     <el-button v-if="showModelAll" @click="handleAuto" style="position: absolute; top: 10px; left: 10px">自动巡检</el-button>
     <el-button  v-if="showModelAll" @click="handleAssign" style="position: absolute; top: 10px; left:100px" :disabled="!showModelAll">指定巡检</el-button>
@@ -38,7 +38,10 @@
 </template>
 
 <script setup>
-import {ref, onMounted, reactive, watch, nextTick, getCurrentInstance, onBeforeMount} from "vue";
+import {ref, onMounted, reactive, watch, nextTick, getCurrentInstance, onBeforeMount,onBeforeUnmount} from "vue";
+import {EffectComposer} from "three/addons/postprocessing/EffectComposer.js";
+import {RenderPass} from "three/addons/postprocessing/RenderPass.js";
+import {OutlinePass} from "three/addons/postprocessing/OutlinePass.js";
 import cabint from './cabint.vue'
 import {
   handlePointData,
@@ -48,8 +51,10 @@ import {
   handeLineData,
   cabinetData,
   tempData,
-  mosi
+  mosi,
+  alarmCabint
 } from './pointData.js'
+import createOutLine from '@/util/addOutLine.js'
 import addHeatmapPlane from '@/views/yuntu.js'
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
@@ -195,6 +200,7 @@ const moveSquareAlongPath = (points, duration, stopPoints) => {
 
       })
       .onComplete(() => {
+        console.log(pathToShow,'pathToShow')
         controls.enabled = true;
         signal.value = false
         scene.remove(...pointArr)
@@ -350,11 +356,15 @@ socketwebrobot.onmessage((a)=>{
   }
 
 })
-socketwebrobot.close(()=>{
+
+//卸载前
+onBeforeUnmount(() => {
+  socketwebrobot.close(()=>{
   scene.remove(...pointArr)
   scene.remove(pathToShow)
 })
 
+})
 
 
 const handleAuto = () => {
@@ -470,10 +480,29 @@ const animate = () => {
   requestAnimationFrame(animate);
 
   tween && tween.update(); // 更新 TWEEN 动画
-
-  renderer.render(scene, camera);
+  composer&&composer.render();
+  // renderer.render(scene, camera); 发光体渲染师 renderer 不在使用
   camera.updateProjectionMatrix();
 };
+let OutLine,composer,outlinePass;
+const createOutline = () => {
+  composer = new EffectComposer(renderer);
+  const renderPass = new RenderPass(scene, camera);
+
+  outlinePass = new OutlinePass(
+      new THREE.Vector2(thress.value.clientWidth, thress.value.clientHeight),
+      scene,
+      camera
+  );
+  outlinePass.visibleEdgeColor.set(0xff0000); // 可见边缘颜色
+  outlinePass.hiddenEdgeColor.set(0xffffff); // 隐藏边缘颜色
+  outlinePass.edgeStrength = 10; // 边缘强度
+  outlinePass.edgeThickness = 2; // 边缘厚度
+
+
+  composer.addPass(renderPass);
+  composer.addPass(outlinePass);
+}
 const init = () => {
   scene = new THREE.Scene();
   //设置场景背景天蓝色
@@ -507,13 +536,21 @@ const init = () => {
   controls.addEventListener("change", function () {
     renderer.render(scene, camera);
   });
+
+  // OutLine =  new createOutLine(renderer, scene, camera,thress.value)
+  // OutLine.init()
+  const outlineData = []
   //加載模型
   let  loader =  new GLTFLoader()
   loader.load('/public/models/sceneNew.glb',gltf=>{
+     let alaramCabint =  alarmCabint.map(item=>item.cabinetId)
 
     gltf.scene.traverse(item=>{
     if(item.isMesh){
       if (item.name.includes("cabinet")) {
+        if(alaramCabint.includes(item.parent.userData.cabinetId)){
+          outlineData.push(item)
+        }
         cabinets.push(item);
       }
     }
@@ -529,7 +566,10 @@ const init = () => {
     controls.target.set(Math.abs(basepoint.x),0,Math.abs(basepoint.z))
     controls.update()
     scene.add(gltf.scene)
+    createOutline()
 
+    outlinePass.selectedObjects = [...outlineData]
+    composer.render()
 
   })
 
@@ -549,6 +589,19 @@ const init = () => {
 
 
 
+
+
+
+  // OutLine.selectObject(outlineData)
+  setTimeout(()=>{
+    outlinePass.selectedObjects=[]
+    outlineData.forEach(item=>{
+      //释放内存
+      item.material.dispose()
+      item.geometry.dispose()
+    })
+
+  },2000)
 
   animate();
 
@@ -699,15 +752,21 @@ const selectCabinet = (px, py) => {
     state.planePos.top = py + "px";
     //超出可视区域则显示在左边
 const data =  cabinetData.find(item=>item.id==intersectObj.parent.userData.cabinetId)
-    console.log(data)
-    state.curCabinet = {
+    if(data){
+      state.curCabinet = {
 
-      name:data.name+'机柜',
-      shelfNum: data.shelfNum,
-      usedNum:data.usedNum,
-      cabinetU: data.cabinetU
-    };
-    console.log(intersectObj !== curCabinet,'intersectObj !== curCabinet')
+        name:data.name+'机柜',
+        shelfNum: data.shelfNum,
+        usedNum:data.usedNum,
+        cabinetU: data.cabinetU,
+        cabinetId:data.id
+      };
+    }else{
+      return
+    }
+
+    // OutLine.selectObject(intersectObj)
+
     if (intersectObj !== curCabinet) {
 
      // intersectObj.material.map = crtTexture("cabinet-hover");
@@ -716,12 +775,15 @@ const data =  cabinetData.find(item=>item.id==intersectObj.parent.userData.cabin
       thress.value.style.cursor = "pointer";
       curCabinet = intersectObj;
     }
+
+
     //如果不存在交叉对象 则取消选中状态
   } else if (curCabinet) {
     curCabinet = null;
     thress.value.style.cursor = "default";
     state.planeDisplay = "none";
   }
+
 };
 const getCabint = ()=>{
     proxy.$request({
